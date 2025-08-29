@@ -54,3 +54,78 @@ The purpose of this project is to provide a clear and understandable rewrite of 
 - 代碼優化（Code optimization）係令生成出嚟嘅代碼跑得快啲或者慳資源。
 - 可以喺唔同階段做：source code、intermediate code、machine code。
 - 技巧有：死碼消除（dead code elimination）、常數摺疊（constant folding）、迴圈優化（loop optimization）、inline 展開（inlining）。
+
+## A question beforehand: Interpreter vs Compiler:
+
+- **Interpreter:**
+  - Executes source code directly, line by line or statement by statement.
+  - No separate output file; runs the program immediately.
+  - Easier to debug and test code interactively.
+  - Slower execution speed compared to compiled code.
+  - Examples: Python, Ruby, JavaScript.
+
+- **Compiler:**
+  - Translates source code into machine code or intermediate code before execution.
+  - Produces an output file (e.g., executable or bytecode) that can be run later.
+  - Program runs faster after compilation.
+  - Errors are detected before execution, during the compilation step.
+  - Examples: C, C++, Rust, Go.
+
+
+In this project, when we say is a "C language compiler," what we're actually building is a C language interpreter. This means we can run C source code files directly, just like running a script. There are two main reasons for doing this:
+
+1. The only real difference between an interpreter and a compiler is in the code generation stage; other parts like lexical analysis and parsing are the same.
+2. Building an interpreter requires us to implement our own virtual machine and instruction set, which helps us better understand how computers work under the hood.
+
+### Practial steps to construct a compiler: 
+Generally, writing a compiler involves three main steps:
+
+1. Lexical analysis(詞法分析器): converting the input string into an internal representation (tokens).
+    - A **token** is a basic unit of meaning identified during lexical analysis. In the context of a compiler, tokens are categories such as keywords (e.g., `int`, `if`), identifiers (variable names), operators (`+`, `-`), literals (numbers, strings), and punctuation (semicolons, parentheses). The lexer scans the input source code and groups characters into these tokens, which are then used by the parser to understand the structure of the code.
+
+2. Syntax analysis(語法分析器): using the stream of tokens from lexical analysis to build a syntax tree.
+3. Code generation: transforming the syntax tree into target code.
+
+There are many tools available to help with steps 1 and 2, such as flex for lexical analysis and bison for syntax analysis. However, these tools are very powerful and hide many implementation details, which is not ideal for learning how to build a compiler from scratch. Therefore, we will implement these components by hand.
+
+In this project, we will follow these steps to build our compiler:
+
+1. Build our own virtual machine and instruction set. The target code we generate will be for this instruction set.
+2. Implement our own lexical analyzer.
+3. Implement our own syntax analyzer.
+
+### Framework for the compiler:
+### Compiler Framework
+
+Our compiler mainly consists of four functions:
+
+- `next()`: Performs lexical analysis and retrieves the next token. It automatically skips whitespace characters.
+- `program()`: The entry point for syntax analysis, responsible for parsing the entire C program.
+- `expression(level)`: Parses an expression. This function is separated out because expressions are relatively independent and complex in syntax analysis, so we modularize it as its own function.
+- `eval()`: The entry point for the virtual machine, responsible for interpreting the generated target code.
+
+For the hardcoded version of the framework, please refer to `framework.c`.
+**Important**: 
+- argc implies: number of arguments; 
+- argv implies array of arguments; 
+- The program will read a doucument of C langauge, and parse every character in the document, then provide output. 
+
+> Expected format for argc and argv:
+- argc: The number of command-line arguments passed to the program, including the program name itself as argv[0].
+- argv: An array of character pointers (strings), where:
+    - argv[0] is the name of the program (e.g., "./framework").
+    - argv[1] to argv[argc-1] are the actual arguments provided by the user.
+
+    Example:
+        If the program is run as:
+            ./framework test.c
+
+        Then:
+            argc == 2
+            argv[0] == "./framework"
+            argv[1] == "test.c"
+    */
+
+#### Future improvements and references:
+[Let's Build a Compiler](http://compilers.iecc.com/crenshaw/)
+[Lemon Parser Generator](http://www.hwaci.com/sw/lemon/)
