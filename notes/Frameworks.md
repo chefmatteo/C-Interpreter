@@ -121,10 +121,17 @@ Registers
 
 In a real computer, registers are used to store the current state of the CPU. There are many types of registers in actual hardware, but our virtual machine only uses four main registers:
 
-1. PC (Program Counter): Holds the memory address of the next instruction to execute.
-2. SP (Stack Pointer): Always points to the top of the stack. Note that in our VM, the stack grows downward (from high to low addresses), so pushing a value decreases SP.
-3. BP (Base Pointer): Used to point to specific positions within the stack, especially during function calls.
-4. AX (Accumulator): A general-purpose register used to store the result of the most recent instruction.
+1. PC (Program Counter): Holds the memory address of the next instruction to execute.  
+   （好似一個指路牌，指住你下一步要行去邊度。）
+
+2. SP (Stack Pointer): Always points to the top of the stack. Note that in our VM, the stack grows downward (from high to low addresses), so pushing a value decreases SP.  
+   （就好似一支筷子插喺一疊碟頂，邊個碟喺最頂就指住邊個。）
+
+3. BP (Base Pointer): Used to point to specific positions within the stack, especially during function calls.  
+   （好似你用書籤夾住書入面某一頁，方便你返去搵返嗰個位。）
+
+4. AX (Accumulator): A general-purpose register used to store the result of the most recent instruction.  
+   （就好似一個膠袋，臨時裝住你啱啱買返嚟嘅嘢。)
 
 These registers are essential for tracking the state of the program as it runs. In our implementation, we define them as global variables:
 ```c

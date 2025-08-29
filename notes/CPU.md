@@ -120,8 +120,151 @@ else if(op == JNZ){
 
 ```c
 else if (op == CALL){
-    //call subroutine
-    *--sp = (int)(pc+1); 
-    pc = (int*)*pc; 
+    // Call subroutine
+    // Save the return address (the instruction after CALL) onto the stack.
+    // --sp moves the stack pointer down (since the stack grows downward), and then we store (pc+1) as an integer.
+    // (pc+1) points to the next instruction after CALL, so when the function returns, execution can continue there.
+    *--sp = (int)(pc + 1);
+
+    // Update the program counter (pc) to the address of the function to call.
+    // *pc gets the target address stored after the CALL instruction, and we cast it to (int *) to use as a pointer.
+    pc = (int *)*pc;
+}
+    //return from subroutine: 
+else if (op == CALL){
+        pc = (int*)*sp++; //sp hasnt been changed so it is safe to use that directly
 }
 ```
+Note that we can replace the `GET` with `LEV` to replace it.
+
+When calling a function in practice, we need to consider not only the address of the function but also how to pass arguments and how to return results.
+
+**Return Value Convention:**
+- If a function returns a value, we agree that the result will be stored in the `ax` register upon return. This value can be either a direct value or an address, depending on the function's purpose.
+
+**Parameter Passing Convention:**
+- Different programming languages have different conventions for function calls. In C, the standard calling convention is as follows:
+
+1. **Argument Passing:**
+   - The caller is responsible for pushing the function arguments onto the stack before making the call.
+   - Arguments are pushed onto the stack in reverse order (right to left), so that the first argument is closest to the top of the stack when the function begins execution.
+
+2. **Return Value:**
+   - The callee (the called function) places the return value in the `ax` register before returning.
+
+3. **Stack Cleanup:**
+   - After the function call completes, the caller is responsible for removing (popping) the arguments from the stack. i.e. the return of the result from the `ax`.
+
+This convention ensures that both the caller and callee know where to find arguments and return values, and it allows for consistent function calls and returns within the virtual machine or compiled code.
+
+For instance, from wikipedia: 
+```c
+int callee(int, int, int); 
+
+int caller(void)
+{
+	int i, ret;
+
+	ret = callee(1, 2, 3);
+	ret += 5;
+	return ret;
+}
+```
+will create the following x86 code: 
+```text
+caller:
+	; make new call frame
+	push    ebp
+	mov     ebp, esp
+        sub     1, esp       ; save stack for variable: i
+	; push call arguments
+	push    3
+	push    2
+	push    1
+	; call subroutine 'callee'
+	call    callee
+	; remove arguments from frame
+	add     esp, 12
+	; use subroutine result
+	add     eax, 5
+	; restore old call frame
+        mov     esp, ebp
+	pop     ebp
+	; return
+	ret
+```
+
+The above assembly code presents several challenges for our own virtual machine:
+
+- The `push ebp` instruction cannot be directly implemented, since our `PUSH` instruction does not support pushing registers other than `ax`.
+- The `mov ebp, esp` instruction is also problematic, as our instruction set lacks a general-purpose `MOV` between arbitrary registers.
+- Similarly, `add esp, 12` is not directly supported (and we haven't even defined such an instruction yet).
+
+Because our instruction set is intentionally simple (for example, most instructions only operate on the `ax` register), we cannot directly implement function calls as in the above example. 
+- Rather than making our existing instructions more complex (which would complicate the implementation), our solution is to expand the instruction set with a few new, higher-level instructions specifically for function call management. 
+- Since we're building a virtual machine and not a real CPU, adding new instructions is a practical way to support features like function calls without overcomplicating the core instruction logic.
+
+
+#### `ENT`: 
+- The `ENT <size>` instruction stands for "enter" and is used to set up a new function call frame on the stack. 
+- When a function is called, it needs its own stack frame to store local variables and to keep track of the previous function's state. 
+- The `ENT` instruction accomplishes this by first saving the current base pointer (which marks the start of the previous stack frame), then updating the base pointer to the current stack pointer position, and finally reserving a specified amount of space on the stack for the local variables of the new function. This is similar to the following sequence in x86 assembly:
+
+    push    ebp        ; Save the old base pointer
+    mov     ebp, esp   ; Set the new base pointer to the current stack pointer
+    sub     esp, <size>; Allocate space for local variables
+
+ `ENT <size>` is a single instruction in our virtual machine that encapsulates all these steps, making it easier to manage function call frames and local variable storage.
+
+```c
+else if (op == ENT){
+    *--sp = (int)bp; 
+    bp = sp; 
+    sp = sp - *pc++; 
+     // By using *pc++, we read the value and then advance pc to the next instruction.
+     // Reserve space for local variables; pc++ moves to the next instruction after reading the size.
+}
+```
+#### `ADJ`:
+
+- The `ADJ <size>` instruction is used to "remove arguments from frame" after a function call. When a function is called, its arguments are pushed onto the stack. After the function returns, these arguments need to be removed from the stack to restore the previous state.
+- Initially our `ADD` function has limited ability, so the corresponding code is, in x86 assembly, this is typically done with:
+    ```
+    add     esp, 12    ; remove 3 arguments (each 4 bytes)
+    ```
+- In our virtual machine, since the `ADD` instruction is limited and cannot directly add an immediate value to the stack pointer, we introduce the `ADJ` instruction to perform this operation in one step.
+```c
+else if (op == ADJ){sp = sp + *pc++;} //add esp, <size>
+
+/*It does the following:
+ - `*pc++` reads the immediate value (e.g., the number of bytes to adjust the stack pointer by) from the instruction stream and then advances the program counter to the next instruction.
+ - `sp = sp + *pc++;` increases the stack pointer (sp) by that immediate value,effectively removing arguments or cleaning up the stack after a function call.
+ The program counter (pc) is only incremented by one (to skip over the immediate value), not by the memory size of sp.
+*/ 
+//Example: if *pc is 12, then sp = sp + 12; pc moves to the next instruction.
+```
+
+#### `LEV`:
+
+- The `LEV` instruction stands for "leave" and is used to restore the previous function call frame and return from a function. 
+- In traditional x86 assembly, this process involves restoring the stack pointer and base pointer, and then returning to the caller. The equivalent x86 instructions are:
+
+    ```
+    mov     esp, ebp   ; Restore the stack pointer to the base pointer (removes local variables)
+    pop     ebp        ; Restore the previous base pointer
+    ret                ; Return to the caller (pop return address into PC)
+    ```
+
+- In our virtual machine, since we do not have a general-purpose `POP` instruction and want to avoid using multiple instructions for this common pattern, we introduce the `LEV` instruction to encapsulate all these steps in one operation.
+
+- The implementation in C is as follows:
+
+    ```c
+    else if (op == LEV)  {
+        sp = bp;                // Restore stack pointer to base pointer (removes local variables)
+        bp = (int *)*sp++;      // Restore previous base pointer
+        pc = (int *)*sp++;      // Restore return address (program counter)
+    }  // restore call frame and PC
+    ```
+
+- Note: The `LEV` instruction already includes the functionality of a `RET` (return) instruction, so we do not need a separate `RET` in our instruction set.
