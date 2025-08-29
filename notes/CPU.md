@@ -268,3 +268,130 @@ else if (op == ADJ){sp = sp + *pc++;} //add esp, <size>
     ```
 
 - Note: The `LEV` instruction already includes the functionality of a `RET` (return) instruction, so we do not need a separate `RET` in our instruction set.
+
+
+#### LEA
+
+- The previous instructions solve the problem of managing call frames, but there is still the question of how a sub-function can access its passed-in arguments. - To understand this, we need to look at the layout of the call frame on the stack when arguments are passed. Let's use the following example (with arguments pushed in order):
+
+```text
+sub_function(arg1, arg2, arg3);
+```
+The stack frame after the function call looks like this:
+
+|    ....       | high address
++---------------+
+| arg: 1        |    new_bp + 4
++---------------+
+| arg: 2        |    new_bp + 3
++---------------+
+| arg: 3        |    new_bp + 2
++---------------+
+|return address |    new_bp + 1
++---------------+
+| old BP        | <- new BP
++---------------+
+| local var 1   |    new_bp - 1
++---------------+
+| local var 2   |    new_bp - 2
++---------------+
+|    ....       |  low address
+
+To access the first argument, we need to get the address at new_bp + 4. However, as mentioned earlier, our ADD instruction cannot operate on registers other than ax. Therefore, we introduce a new instruction: LEA <offset>.
+
+```c
+else if (op == LEA)  {ax = (int)(bp + *pc++);}   // load address for arguments.
+```
+With this, we have all the instructions needed to implement function calls in our virtual machine.
+
+Operator Instructions
+
+- For each operator supported in C, we provide a corresponding assembly instruction in the virtual machine.
+- All operators are binary (take two operands):
+    - The first operand is placed on the top of the stack.
+    - The second operand is stored in the `ax` register.
+- The order of operands is important, especially for non-commutative operators like `-` and `/`.
+- After the operation:
+    - The top value on the stack is popped (removed).
+    - The result of the operation is stored in the `ax` register.
+    - Both original operands are no longer accessible (from the perspective of assembly; they may still exist in memory elsewhere).
+
+Implementation: 
+```c
+else if (op == OR)  ax = *sp++ | ax;
+else if (op == XOR) ax = *sp++ ^ ax;
+else if (op == AND) ax = *sp++ & ax;
+else if (op == EQ)  ax = *sp++ == ax;
+else if (op == NE)  ax = *sp++ != ax;
+else if (op == LT)  ax = *sp++ < ax;
+else if (op == LE)  ax = *sp++ <= ax;
+else if (op == GT)  ax = *sp++ >  ax;
+else if (op == GE)  ax = *sp++ >= ax;
+else if (op == SHL) ax = *sp++ << ax;
+else if (op == SHR) ax = *sp++ >> ax;
+else if (op == ADD) ax = *sp++ + ax;
+else if (op == SUB) ax = *sp++ - ax;
+else if (op == MUL) ax = *sp++ * ax;
+else if (op == DIV) ax = *sp++ / ax;
+else if (op == MOD) ax = *sp++ % ax;
+```
+> Built-in Functions
+
+To make our programs actually "useful," we need more than just core logic—we also need input and output capabilities. For example, in C, we often use the `printf` function for output. However, implementing `printf` from scratch is quite complex. If we want our compiler to be self-hosting, we would need to implement functions like `printf`, but these are not directly related to the core of the compiler itself. Therefore, we add new instructions to our virtual machine to support these functions directly.
+
+The functions we need to support in the compiler are: `exit`, `open`, `close`, `read`, `printf`, `malloc`, `memset`, and `memcmp`. The code is as follows:
+
+```cpp
+else if (op == EXIT) { printf("exit(%d)", *sp); return *sp;}
+else if (op == OPEN) { ax = open((char *)sp[1], sp[0]); }
+else if (op == CLOS) { ax = close(*sp);}
+else if (op == READ) { ax = read(sp[2], (char *)sp[1], *sp); }
+else if (op == PRTF) { tmp = sp + pc[1]; ax = printf((char *)tmp[-1], tmp[-2], tmp[-3], tmp[-4], tmp[-5], tmp[-6]); }
+else if (op == MALC) { ax = (int)malloc(*sp);}
+else if (op == MSET) { ax = (int)memset((char *)sp[2], sp[1], *sp);}
+else if (op == MCMP) { ax = memcmp((char *)sp[2], (char *)sp[1], *sp);}
+```
+
+The reason this works is that these functions (such as printf, open, malloc, etc.) are already implemented on our computer as part of the standard C library. When we compile our compiler, the binary code for these functions is linked into our compiler executable. As a result, when our virtual machine executes these special instructions, it can directly call the corresponding system functions without us having to implement them ourselves.
+
+Finally, we implement a raise error function:
+```c
+else {
+    printf("unknown instruction:%d\n", op);
+    return -1;
+}
+```
+
+
+#### Testing: 
+```c
+int main(int argc, char *argv[])
+{
+    ax = 0;
+    ...
+
+    i = 0;
+    text[i++] = IMM;
+    text[i++] = 10;
+    text[i++] = PUSH;
+    text[i++] = IMM;
+    text[i++] = 20;
+    text[i++] = ADD;
+    text[i++] = PUSH;
+    text[i++] = EXIT;
+    pc = text;
+
+    ...
+    program();
+}
+```
+To compile the program, use: `gcc xc-tutor.c`, and then run it with: `./a.out hello.c`. The output will be:
+
+exit(30)
+
+Additionally, our code contains some pointer casts that assume a 32-bit environment. On a 64-bit machine, this can cause segmentation faults. There are two ways to resolve this:
+
+1. Compile with the `-m32` flag to force 32-bit mode: `gcc -m32 xc-tutor.c`
+2. Add `#define int long long` at the beginning of your code. This makes `int` 64 bits, which avoids issues with pointer casting on 64-bit systems.
+
+Note: Our previous program requires a source file as input, although at this stage it is not strictly necessary. As you can see from the result, our virtual machine is working correctly.
