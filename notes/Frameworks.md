@@ -107,4 +107,42 @@ char *data;             //data segment
 
 Although the type is 'int', we should conceptually treat these as unsigned integers (meaning it must be non negative numbers), since the text segment will store things like pointers or memory addresses, which are unsigned values. 
 The data segment is of type 'char *' because it only stores string literals.
-*/
+
+> **What is the difference between `malloc` and `memset`?**
+
+- `malloc(size)` allocates a block of memory of the given size (in bytes) and returns a pointer to the beginning of the block. The contents of the allocated memory are **not initialized**; they may contain garbage values.
+- `memset(ptr, value, size)` sets the first `size` bytes of the memory block pointed to by `ptr` to the specified `value` (usually 0 to clear the memory). It does **not** allocate memory; it only modifies the contents of an existing memory block.
+
+**In summary:**  
+- Use `malloc` to allocate memory.  
+- Use `memset` to initialize or clear memory that has already been allocated.
+
+Registers
+
+In a real computer, registers are used to store the current state of the CPU. There are many types of registers in actual hardware, but our virtual machine only uses four main registers:
+
+1. PC (Program Counter): Holds the memory address of the next instruction to execute.
+2. SP (Stack Pointer): Always points to the top of the stack. Note that in our VM, the stack grows downward (from high to low addresses), so pushing a value decreases SP.
+3. BP (Base Pointer): Used to point to specific positions within the stack, especially during function calls.
+4. AX (Accumulator): A general-purpose register used to store the result of the most recent instruction.
+
+These registers are essential for tracking the state of the program as it runs. In our implementation, we define them as global variables:
+```c
+int *pc, *bp, *sp, ax, cycle; //virtual machine registers; 
+```
+
+Add initialization code in the main function. Note that the PC (program counter) should initially point to the main function in the compiled code, but since we haven't implemented any compilation logic yet, we will leave that part for later. The code is as follows:
+```cpp
+memset(stack, 0, poolsize);
+...
+// This line sets both the base pointer (bp) and stack pointer (sp) to point to the top of the stack segment.
+// (int)stack converts the stack pointer to an integer address, adds poolsize (the total size of the stack in bytes),
+// and then casts it back to (int *) so that bp and sp point to the end of the allocated stack memory.
+// This means the stack will grow downward from this address as values are pushed onto it.
+bp = sp = (int *)((int)stack + poolsize);
+ax = 0;
+...
+program();
+```
+
+
