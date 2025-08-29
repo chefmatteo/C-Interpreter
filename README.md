@@ -116,16 +116,15 @@ For the hardcoded version of the framework, please refer to `framework.c`.
     - argv[0] is the name of the program (e.g., "./framework").
     - argv[1] to argv[argc-1] are the actual arguments provided by the user.
 
-    Example:
-        If the program is run as:
-            ./framework test.c
+Example:
+- If the program is run as: `./framework test.c`
 
-        Then:
-            argc == 2
-            argv[0] == "./framework"
-            argv[1] == "test.c"
-    */
+```
+    argc == 2
+    argv[0] == "./framework"
+    argv[1] == "test.c"
+```
 
 #### Future improvements and references:
-[Let's Build a Compiler](http://compilers.iecc.com/crenshaw/)
-[Lemon Parser Generator](http://www.hwaci.com/sw/lemon/)
+- [Let's Build a Compiler](http://compilers.iecc.com/crenshaw/)
+- [Lemon Parser Generator](http://www.hwaci.com/sw/lemon/)
