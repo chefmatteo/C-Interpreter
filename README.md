@@ -5,7 +5,13 @@
 
 The purpose of this project is to provide a clear and understandable rewrite of the original `c4` project—a minimal C compiler that became popular for its ability to self-host (compile itself) using only four core functions. While the original `c4` is impressive for its compactness and completeness, its code is intentionally obfuscated and difficult to follow, as it was designed to minimize code size above all else. This project aims to retain the core functionality and educational value of `c4`, but with clean, well-structured, and well-documented code that is accessible to learners and developers interested in compiler construction.
 
-## There are mainly four aspects we gonna focus on in this project: 
+This repository contains two main components: 
+- Use `fclang` to learn the framework and concepts.
+- Use `xclang` to see the working compiler/interpreter in action.
+
+
+#### There are mainly four aspects we gonna focus on in this project:
+
 #### How to Represent Syntax (BNF, etc.)
 
 - Syntax of programming languages is often described using formal grammars.
@@ -58,31 +64,32 @@ The purpose of this project is to provide a clear and understandable rewrite of 
 ## A question beforehand: Interpreter vs Compiler:
 
 - **Interpreter:**
+
   - Executes source code directly, line by line or statement by statement.
   - No separate output file; runs the program immediately.
   - Easier to debug and test code interactively.
   - Slower execution speed compared to compiled code.
   - Examples: Python, Ruby, JavaScript.
-
 - **Compiler:**
+
   - Translates source code into machine code or intermediate code before execution.
   - Produces an output file (e.g., executable or bytecode) that can be run later.
   - Program runs faster after compilation.
   - Errors are detected before execution, during the compilation step.
   - Examples: C, C++, Rust, Go.
 
-
 In this project, when we say is a "C language compiler," what we're actually building is a C language interpreter. This means we can run C source code files directly, just like running a script. There are two main reasons for doing this:
 
 1. The only real difference between an interpreter and a compiler is in the code generation stage; other parts like lexical analysis and parsing are the same.
 2. Building an interpreter requires us to implement our own virtual machine and instruction set, which helps us better understand how computers work under the hood.
 
-### Practial steps to construct a compiler: 
+### Practial steps to construct a compiler:
+
 Generally, writing a compiler involves three main steps:
 
 1. Lexical analysis(詞法分析器): converting the input string into an internal representation (tokens).
-    - A **token** is a basic unit of meaning identified during lexical analysis. In the context of a compiler, tokens are categories such as keywords (e.g., `int`, `if`), identifiers (variable names), operators (`+`, `-`), literals (numbers, strings), and punctuation (semicolons, parentheses). The lexer scans the input source code and groups characters into these tokens, which are then used by the parser to understand the structure of the code.
 
+   - A **token** is a basic unit of meaning identified during lexical analysis. In the context of a compiler, tokens are categories such as keywords (e.g., `int`, `if`), identifiers (variable names), operators (`+`, `-`), literals (numbers, strings), and punctuation (semicolons, parentheses). The lexer scans the input source code and groups characters into these tokens, which are then used by the parser to understand the structure of the code.
 2. Syntax analysis(語法分析器): using the stream of tokens from lexical analysis to build a syntax tree.
 3. Code generation: transforming the syntax tree into target code.
 
@@ -94,98 +101,7 @@ In this project, we will follow these steps to build our compiler:
 2. Implement our own lexical analyzer.
 3. Implement our own syntax analyzer.
 
-### Framework for the compiler:
-### Compiler Framework
-
-Our compiler mainly consists of four functions:
-
-- `next()`: Performs lexical analysis and retrieves the next token. It automatically skips whitespace characters.
-- `program()`: The entry point for syntax analysis, responsible for parsing the entire C program.
-- `expression(level)`: Parses an expression. This function is separated out because expressions are relatively independent and complex in syntax analysis, so we modularize it as its own function.
-- `eval()`: The entry point for the virtual machine, responsible for interpreting the generated target code.
-
-For the hardcoded version of the framework, please refer to `framework.c`.
-**Important**: 
-- argc implies: number of arguments; 
-- argv implies array of arguments; 
-- The program will read a doucument of C langauge, and parse every character in the document, then provide output. 
-
-> Expected format for argc and argv:
-- argc: The number of command-line arguments passed to the program, including the program name itself as argv[0].
-- argv: An array of character pointers (strings), where:
-    - argv[0] is the name of the program (e.g., "./framework").
-    - argv[1] to argv[argc-1] are the actual arguments provided by the user.
-
-Example:
-- If the program is run as: `./framework test.c`
-
-```
-    argc == 2
-    argv[0] == "./framework"
-    argv[1] == "test.c"
-```
-
-### Computer architecture and working principle: 
-- In general, a computer has three main components we need to care about: the CPU, registers(寄存器), and memory.
-> Registers（寄存器）係 CPU 入面嘅一啲超高速細細粒嘅記憶體，用嚟暫存數據同指令。例如你做加數、減數、搬運數據，全部都會經過 registers。佢哋好似你做運算時手上拎住嘅計數機，快過你去記住啲數喺普通記憶體（RAM）度。每個 register 都有唔同用途，例如儲存運算結果、記住下一條要執行嘅指令位置（program counter）、或者暫存某啲變數。因為 registers 喺 CPU 入面，所以讀寫速度極快，對電腦運作好重要。
-
-- The code (such as assembly instructions) is stored in memory as binary data. The CPU loads and executes these instructions one by one. The current state of the program (like variable values and where you are in the code) is kept in the registers.
-
-**Memory**
-- Memory is used to store data, which can be either your program's code or other information. 
-- Modern operating systems use something called "virtual memory" instead of directly using the physical memory (RAM) in your computer.
-  >  Windows、macOS、Linux）會用一種叫「虛擬記憶體」嘅技術，唔係直接用你部電腦嘅實體記憶體（RAM）。
-- Virtual memory acts like a map: it lets programs use a large range of addresses (for example, on a 32-bit system, 2^32 up to 4GB), even if the actual physical memory is much less (like 256MB).
-- The operating system handles the mapping between virtual addresses and real memory.
-
-**Program's memory is divided into several sections, called "segments."**
-- **Text segment (code):** Stores the program's instructions.  
-  - The actual instructions your CPU will execute (the binary code generated from your source code) are stored in the text segment of memory.
-
-- **Data segment:** Stores variables that are initialized at the start.  
-  *Example:* `int i = 10;` — the value 10 is stored in the data segment.
-
-- **BSS segment（未初始化數據段）:** Stores variables that are declared but not 
-initialized.  
-  *Example:* `int arr[1000];` Since we don't care about the initial values, these are put in the BSS segment to save space.
-
-- **Stack:** Used for function calls, local variables, and keeping track of where to return after a function finishes.  
-  *Example:* When you call a function, its local variables and return address are stored on the stack.
-
-- **Heap:** Used for dynamic memory allocation (memory you request at runtime).  
-  *Example:* When you use `malloc` in C or `new` in C++, the memory comes from the heap.
-
-## Memory Layout Visualization
-
-The following diagram shows the typical memory layout of a program in virtual memory:
-
-```mermaid
-graph TD
-    %% Memory Layout Diagram
-    subgraph "Virtual Memory Address Space"
-        A["📚 Stack<br/>(High Address)<br/>Function calls, local variables<br/>Grows downward"]
-        B["🗂️ Heap<br/>Dynamic memory allocation<br/>malloc(), free()<br/>Grows upward"]
-        C["📋 BSS Segment<br/>Uninitialized global/static variables<br/>Zero-initialized"]
-        D["💾 Data Segment<br/>Initialized global/static variables<br/>Constants, initialized data"]
-        E["⚙️ Text Segment<br/>(Low Address)<br/>Executable code<br/>Read-only"]
-    end
-    
-    %% Address flow
-    A -->|"High Address"| B
-    B -->|"Growing upward"| C
-    C -->|"Static data"| D
-    D -->|"Low Address"| E
-
-    
-    class A stackStyle
-    class B heapStyle
-    class C bssStyle
-    class D dataStyle
-    class E textStyle
-```
-
-
-
 #### Future improvements and references:
-- [Let's Build a Compiler](http://compilers.iecc.com/crenshaw/)
+
+- [Let&#39;s Build a Compiler](http://compilers.iecc.com/crenshaw/)
 - [Lemon Parser Generator](http://www.hwaci.com/sw/lemon/)
