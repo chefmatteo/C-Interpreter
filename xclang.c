@@ -83,7 +83,7 @@ int main(int argc, char **argv){
     //poolsize 係用嚟設定 text/data/stack segments 嘅預設大細（即係程式碼區、數據區、同埋堆疊區嘅容量），而家設咗做 256KB。
 
     //format of "open" is: int open(const char *pathname, int flags);
-    //int flags means the mode of the file: aka: read-only, write-only, read-write, etc.
+    //int flags means the mode of the file: aka: read-only, write-on ly, read-write, etc.
     //argv initially points to the program name, add a * before it to get the actual string; 
     //After incrementing argv (argv++), *argv points to the first user-supplied argument (the filename, e.g., "test.c").
 

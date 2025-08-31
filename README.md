@@ -167,6 +167,12 @@ int main(int argc, char **argv)
     return eval();
 }
 ```
+
+#### To run the program: 
+Run: 
+```bash
+./fclang_compile <test_file.c>
+```
 #### Future improvements and references:
 
 - [Let's Build a Compiler](http://compilers.iecc.com/crenshaw/)
