@@ -135,14 +135,7 @@ clang: error: linker command failed with exit code 1
 
    - Compile for 64-bit instead of 32-bit
 
-## Final Result
-
-- ✅ **Compilation successful** (exit code 0)
-- ✅ **No warnings**
-- ✅ **No errors**
-- ✅ **Program runs correctly** and shows `exit(30)` for sum operations
-
-## Lessons Learned
+> Summary: 
 
 1. Modern C compilers are stricter about implicit declarations
 2. 64-bit systems require different format specifiers

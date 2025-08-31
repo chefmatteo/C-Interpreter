@@ -10,6 +10,7 @@
 #define int intptr_t
 
 
+
 int token;                    // current token
 int token_val;                // value of current token (mainly for number)
 char *src, *old_src;          // pointer to source code string;
@@ -38,6 +39,7 @@ enum {
 
 // fields of identifier
 enum {Token, Hash, Name, Type, Class, Value, BType, BClass, BValue, IdSize};
+// B class and B type are used to store the global identifier information when the local identifier has the same name as the global one.
 
 // types of variable/function
 enum { CHAR, INT, PTR };
@@ -57,8 +59,13 @@ int expr_type;   // the type of an expression
 int index_of_bp; // index of bp pointer on stack
 
 void next() {
-    char *last_pos;
+    char *last_pos; // stores the last position of the identifier
     int hash;
+
+    // Example:
+    // If src points to "foobar", and token is 'f', then after parsing the identifier,
+    // last_pos will point to the start of "foobar", and src will point just after 'r'.
+    // hash will be the computed hash value for "foobar".
 
     while ((token = *src)) {
         ++src;
